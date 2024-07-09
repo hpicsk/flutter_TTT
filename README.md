@@ -1,3 +1,3 @@
 # flutter_ttt
 
-Coding Tic-Tac-Toe game with flutter and chatGPT.
+Coding Tic-Tac-Toe game with flutter with claude.ai and manual debugging.
