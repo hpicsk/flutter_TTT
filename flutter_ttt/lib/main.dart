@@ -130,8 +130,12 @@ class _TicTacToeGameState extends State<TicTacToeGame> {
     super.initState();
     if (widget.isSinglePlayer && widget.playerSymbol == 'O') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _makeRandomComputerMove();
-        // _makeComputerMove();
+        final availableMoves = _getAvailableMoves();
+        if (availableMoves.isNotEmpty) {
+          final random = Random();
+          int randomIndex = random.nextInt(availableMoves.length);
+          _makeMove(availableMoves[randomIndex], isComputerMove: true);
+        }
       });
     }
   }
@@ -151,26 +155,11 @@ class _TicTacToeGameState extends State<TicTacToeGame> {
     }
   }
 
-  void _makeMove1(int index) {
-    if (_board[index].isNotEmpty || _gameOver) {
-      return;
-    }
-
-    String symbol = _isXTurn ? 'X' : 'O';
-
-    setState(() {
-      _board[index] = symbol;
-      _isXTurn = !_isXTurn;
-      _checkWinner(symbol);
-    });
-
-    if (widget.isSinglePlayer && symbol == 'O') {
-      // _makeComputerMove();
-      _makeRandomComputerMove();
-    }
+  List<int> _getAvailableMoves() {
+    return List.generate(9, (i) => i).where((i) => _board[i].isEmpty).toList();
   }
 
-  void _makeMove(int index) {
+  void _makeMove(int index, {bool isComputerMove = false}) {
     if (_board[index].isNotEmpty || _gameOver) {
       return;
     }
@@ -181,33 +170,23 @@ class _TicTacToeGameState extends State<TicTacToeGame> {
       _checkWinner(_board[index]);
     });
 
-    if (widget.isSinglePlayer && !_gameOver) {
+    if (widget.isSinglePlayer && !_gameOver && !isComputerMove) {
       // Determine if it's the computer's turn
       bool isComputerTurn = (widget.playerSymbol == 'X' && !_isXTurn) ||
           (widget.playerSymbol == 'O' && _isXTurn);
 
       if (isComputerTurn) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          // _makeSophisticatedComputerMove();
-          _makeRandomComputerMove();
+          final availableMoves = _getAvailableMoves();
+          if (availableMoves.isNotEmpty) {
+            final random = Random();
+            int randomIndex = random.nextInt(availableMoves.length);
+            _makeMove(availableMoves[randomIndex], isComputerMove: true);
+          }
         });
       }
     }
   }
-
-  // void _makeComputerMove() {
-  //   int? moveIndex;
-  //   for (int i = 0; i < _board.length; i++) {
-  //     if (_board[i].isEmpty) {
-  //       moveIndex = i;
-  //       break;
-  //     }
-  //   }
-
-  //   if (moveIndex != null) {
-  //     _makeMove(moveIndex);
-  //   }
-  // }
 
   void _makeRandomComputerMove() {
     if (_gameOver) return;
