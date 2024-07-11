@@ -112,7 +112,6 @@ class TicTacToeGame extends StatefulWidget {
   final bool isSinglePlayer;
   final String playerSymbol;
 
-  // const TicTacToeGame({super.key, required this.isSinglePlayer});
   const TicTacToeGame(
       {super.key, required this.isSinglePlayer, required this.playerSymbol});
 
@@ -124,18 +123,14 @@ class _TicTacToeGameState extends State<TicTacToeGame> {
   List<String> _board = List.filled(9, '');
   bool _isXTurn = true;
   bool _gameOver = false;
+  bool _isEasyMode = true;
 
   @override
   void initState() {
     super.initState();
     if (widget.isSinglePlayer && widget.playerSymbol == 'O') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final availableMoves = _getAvailableMoves();
-        if (availableMoves.isNotEmpty) {
-          final random = Random();
-          int randomIndex = random.nextInt(availableMoves.length);
-          _makeMove(availableMoves[randomIndex], isComputerMove: true);
-        }
+        _makeComputerMove();
       });
     }
   }
@@ -149,17 +144,12 @@ class _TicTacToeGameState extends State<TicTacToeGame> {
 
     if (widget.isSinglePlayer && widget.playerSymbol == 'O') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _makeRandomComputerMove();
-        // _makeComputerMove();
+        _makeComputerMove();
       });
     }
   }
 
-  List<int> _getAvailableMoves() {
-    return List.generate(9, (i) => i).where((i) => _board[i].isEmpty).toList();
-  }
-
-  void _makeMove(int index, {bool isComputerMove = false}) {
+  void _makeMove(int index) {
     if (_board[index].isNotEmpty || _gameOver) {
       return;
     }
@@ -170,27 +160,34 @@ class _TicTacToeGameState extends State<TicTacToeGame> {
       _checkWinner(_board[index]);
     });
 
-    if (widget.isSinglePlayer && !_gameOver && !isComputerMove) {
-      // Determine if it's the computer's turn
+    if (widget.isSinglePlayer && !_gameOver) {
       bool isComputerTurn = (widget.playerSymbol == 'X' && !_isXTurn) ||
           (widget.playerSymbol == 'O' && _isXTurn);
 
       if (isComputerTurn) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          final availableMoves = _getAvailableMoves();
-          if (availableMoves.isNotEmpty) {
-            final random = Random();
-            int randomIndex = random.nextInt(availableMoves.length);
-            _makeMove(availableMoves[randomIndex], isComputerMove: true);
-          }
+          _makeComputerMove();
         });
       }
     }
   }
 
-  void _makeRandomComputerMove() {
+  void _makeComputerMove() {
     if (_gameOver) return;
 
+    int moveIndex;
+    if (_isEasyMode) {
+      moveIndex = _makeRandomComputerMove();
+    } else {
+      moveIndex = _makeSophisticatedComputerMove();
+    }
+
+    if (moveIndex != -1) {
+      _makeMove(moveIndex);
+    }
+  }
+
+  int _makeRandomComputerMove() {
     List<int> emptySpots = [];
     for (int i = 0; i < _board.length; i++) {
       if (_board[i].isEmpty) {
@@ -200,15 +197,12 @@ class _TicTacToeGameState extends State<TicTacToeGame> {
 
     if (emptySpots.isNotEmpty) {
       final random = Random();
-      int randomIndex = random.nextInt(emptySpots.length);
-      int moveIndex = emptySpots[randomIndex];
-      _makeMove(moveIndex);
+      return emptySpots[random.nextInt(emptySpots.length)];
     }
+    return -1;
   }
 
-  void _makeSophisticatedComputerMove() {
-    if (_gameOver) return;
-
+  int _makeSophisticatedComputerMove() {
     int bestScore = -1000;
     int bestMove = -1;
     String aiPlayer = widget.playerSymbol == 'X' ? 'O' : 'X';
@@ -225,9 +219,7 @@ class _TicTacToeGameState extends State<TicTacToeGame> {
       }
     }
 
-    if (bestMove != -1) {
-      _makeMove(bestMove);
-    }
+    return bestMove;
   }
 
   int _minimax(
@@ -362,6 +354,23 @@ class _TicTacToeGameState extends State<TicTacToeGame> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tic Tac Toe'),
+        actions: [
+          if (widget.isSinglePlayer)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _isEasyMode = !_isEasyMode;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  primary: _isEasyMode ? Colors.green : Colors.red,
+                ),
+                child: Text(_isEasyMode ? 'Easy' : 'Hard'),
+              ),
+            ),
+        ],
       ),
       body: Center(
         child: Column(
