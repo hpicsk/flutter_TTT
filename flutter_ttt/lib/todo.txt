@@ -1,0 +1,3 @@
+
+Make a toggle rectangular button at the left top which shows 'Easy' or 'Hard'. 
+If its easy mode is on computer makes RandomComputerMove. If hard mode is on, the cmoputer makes SophiscatedComputerMove.

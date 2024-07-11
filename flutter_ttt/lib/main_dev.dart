@@ -112,7 +112,6 @@ class TicTacToeGame extends StatefulWidget {
   final bool isSinglePlayer;
   final String playerSymbol;
 
-  // const TicTacToeGame({super.key, required this.isSinglePlayer});
   const TicTacToeGame(
       {super.key, required this.isSinglePlayer, required this.playerSymbol});
 
@@ -122,16 +121,21 @@ class TicTacToeGame extends StatefulWidget {
 
 class _TicTacToeGameState extends State<TicTacToeGame> {
   List<String> _board = List.filled(9, '');
-  bool _isXTurn = true;
+  late bool _isPlayerTurn;
   bool _gameOver = false;
+  late String _playerSymbol;
+  late String _computerSymbol;
 
   @override
   void initState() {
     super.initState();
-    if (widget.isSinglePlayer && widget.playerSymbol == 'O') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _makeRandomComputerMove();
-        // _makeComputerMove();
+    _playerSymbol = widget.playerSymbol;
+    _computerSymbol = _playerSymbol == 'X' ? 'O' : 'X';
+    _isPlayerTurn = _playerSymbol == 'X';
+    if (widget.isSinglePlayer && !_isPlayerTurn) {
+      print("Computer should make first move");
+      Future.delayed(Duration(milliseconds: 500), () {
+        _makeComputerMove();
       });
     }
   }
@@ -139,172 +143,56 @@ class _TicTacToeGameState extends State<TicTacToeGame> {
   void _resetGame() {
     setState(() {
       _board = List.filled(9, '');
-      _isXTurn = true;
+      _isPlayerTurn = _playerSymbol == 'X';
       _gameOver = false;
     });
-
-    if (widget.isSinglePlayer && widget.playerSymbol == 'O') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _makeRandomComputerMove();
-        // _makeComputerMove();
+    if (widget.isSinglePlayer && !_isPlayerTurn) {
+      print("Computer should make first move after reset");
+      Future.delayed(Duration(milliseconds: 500), () {
+        _makeComputerMove();
       });
     }
   }
 
-  void _makeMove1(int index) {
-    if (_board[index].isNotEmpty || _gameOver) {
-      return;
-    }
-
-    String symbol = _isXTurn ? 'X' : 'O';
-
-    setState(() {
-      _board[index] = symbol;
-      _isXTurn = !_isXTurn;
-      _checkWinner(symbol);
-    });
-
-    if (widget.isSinglePlayer && symbol == 'O') {
-      // _makeComputerMove();
-      _makeRandomComputerMove();
-    }
-  }
-
   void _makeMove(int index) {
-    if (_board[index].isNotEmpty || _gameOver) {
+    if (_board[index].isNotEmpty ||
+        _gameOver ||
+        (!_isPlayerTurn && widget.isSinglePlayer)) {
       return;
     }
 
     setState(() {
-      _board[index] = _isXTurn ? 'X' : 'O';
-      _isXTurn = !_isXTurn;
+      _board[index] = _isPlayerTurn ? _playerSymbol : _computerSymbol;
+      _isPlayerTurn = !_isPlayerTurn;
       _checkWinner(_board[index]);
     });
 
-    if (widget.isSinglePlayer && !_gameOver) {
-      // Determine if it's the computer's turn
-      bool isComputerTurn = (widget.playerSymbol == 'X' && !_isXTurn) ||
-          (widget.playerSymbol == 'O' && _isXTurn);
-
-      if (isComputerTurn) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          // _makeSophisticatedComputerMove();
-          _makeRandomComputerMove();
-        });
-      }
+    if (widget.isSinglePlayer && !_isPlayerTurn && !_gameOver) {
+      print("Computer should make a move");
+      Future.delayed(Duration(milliseconds: 500), () {
+        _makeComputerMove();
+      });
     }
   }
 
-  // void _makeComputerMove() {
-  //   int? moveIndex;
-  //   for (int i = 0; i < _board.length; i++) {
-  //     if (_board[i].isEmpty) {
-  //       moveIndex = i;
-  //       break;
-  //     }
-  //   }
-
-  //   if (moveIndex != null) {
-  //     _makeMove(moveIndex);
-  //   }
-  // }
-
-  void _makeRandomComputerMove() {
-    if (_gameOver) return;
-
-    List<int> emptySpots = [];
+  void _makeComputerMove() {
+    print("Making computer move");
+    List<int> emptyCells = [];
     for (int i = 0; i < _board.length; i++) {
       if (_board[i].isEmpty) {
-        emptySpots.add(i);
+        emptyCells.add(i);
       }
     }
 
-    if (emptySpots.isNotEmpty) {
+    if (emptyCells.isNotEmpty) {
       final random = Random();
-      int randomIndex = random.nextInt(emptySpots.length);
-      int moveIndex = emptySpots[randomIndex];
+      int randomIndex = random.nextInt(emptyCells.length);
+      int moveIndex = emptyCells[randomIndex];
+      print("Computer chose cell: $moveIndex");
       _makeMove(moveIndex);
-    }
-  }
-
-  void _makeSophisticatedComputerMove() {
-    if (_gameOver) return;
-
-    int bestScore = -1000;
-    int bestMove = -1;
-    String aiPlayer = widget.playerSymbol == 'X' ? 'O' : 'X';
-
-    for (int i = 0; i < 9; i++) {
-      if (_board[i].isEmpty) {
-        _board[i] = aiPlayer;
-        int score = _minimax(_board, 0, false, aiPlayer);
-        _board[i] = '';
-        if (score > bestScore) {
-          bestScore = score;
-          bestMove = i;
-        }
-      }
-    }
-
-    if (bestMove != -1) {
-      _makeMove(bestMove);
-    }
-  }
-
-  int _minimax(
-      List<String> board, int depth, bool isMaximizing, String aiPlayer) {
-    String humanPlayer = aiPlayer == 'X' ? 'O' : 'X';
-
-    String result = _checkWinnerForMinimax(board);
-    if (result != '') {
-      return result == aiPlayer ? 10 - depth : depth - 10;
-    }
-
-    if (board.every((cell) => cell.isNotEmpty)) {
-      return 0;
-    }
-
-    if (isMaximizing) {
-      int bestScore = -1000;
-      for (int i = 0; i < 9; i++) {
-        if (board[i].isEmpty) {
-          board[i] = aiPlayer;
-          int score = _minimax(board, depth + 1, false, aiPlayer);
-          board[i] = '';
-          bestScore = max(score, bestScore);
-        }
-      }
-      return bestScore;
     } else {
-      int bestScore = 1000;
-      for (int i = 0; i < 9; i++) {
-        if (board[i].isEmpty) {
-          board[i] = humanPlayer;
-          int score = _minimax(board, depth + 1, true, aiPlayer);
-          board[i] = '';
-          bestScore = min(score, bestScore);
-        }
-      }
-      return bestScore;
+      print("No empty cells for computer move");
     }
-  }
-
-  String _checkWinnerForMinimax(List<String> board) {
-    final winningCombinations = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
-      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
-      [0, 4, 8], [2, 4, 6], // Diagonals
-    ];
-
-    for (var combination in winningCombinations) {
-      if (board[combination[0]].isNotEmpty &&
-          board[combination[0]] == board[combination[1]] &&
-          board[combination[1]] == board[combination[2]]) {
-        return board[combination[0]];
-      }
-    }
-
-    return '';
   }
 
   void _checkWinner(String symbol) {
@@ -424,7 +312,9 @@ class _TicTacToeGameState extends State<TicTacToeGame> {
             Text(
               _gameOver
                   ? 'Game Over'
-                  : ("Player ${_isXTurn ? 'X' : 'O'}'s turn"),
+                  : (widget.isSinglePlayer
+                      ? (_isPlayerTurn ? "Your turn" : "Computer's turn")
+                      : "Player ${_isPlayerTurn ? _playerSymbol : _computerSymbol}'s turn"),
               style: const TextStyle(
                 fontSize: 24.0,
                 fontWeight: FontWeight.bold,
